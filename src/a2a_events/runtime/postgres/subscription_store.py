@@ -1,4 +1,4 @@
-"""Postgres subscription store (DESIGN.md §25) implementing ``SubscriptionStore``.
+"""Postgres subscription store (spec §25) implementing ``SubscriptionStore``.
 
 The durable counterpart to :class:`InMemorySubscriptionStore`: subscriptions,
 their per-topic high-water dispatch positions, acks, and delivery attempts

@@ -1,4 +1,4 @@
-"""Background retention compaction (DESIGN.md §31).
+"""Background retention compaction (spec §31).
 
 The stores filter expired events on read, which keeps replay correct, but the
 rows live forever. :class:`RetentionCompactor` periodically calls
@@ -19,7 +19,7 @@ class Compactable(Protocol):
 
 
 class RetentionCompactor:
-    """Periodically compacts an event store (DESIGN.md §31)."""
+    """Periodically compacts an event store (spec §31)."""
 
     def __init__(
         self,

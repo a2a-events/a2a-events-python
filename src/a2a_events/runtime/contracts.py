@@ -12,7 +12,7 @@ own adapter against Redis, Kafka, DynamoDB, a message bus, etc.
 Contracts here:
 
 - :class:`EventStore` — the per-topic append-only event log with opaque,
-  ordered cursors (DESIGN.md §7.3, §10.9, §20, §31).
+  ordered cursors (spec §7.3, §10.9, §20, §31).
 - :class:`SubscriptionStore` — durable subscriptions, per-topic high-water
   positions, acks, and delivery attempts (§14, §25).
 - :class:`RetryQueue` — durable backlog of pending delivery retries (§19.4).
@@ -48,7 +48,7 @@ def new_retry_id() -> str:
     return "rty_" + uuid.uuid4().hex
 
 
-# --- event store contract (DESIGN.md §7.3, §10.9) ---
+# --- event store contract (spec §7.3, §10.9) ---
 @dataclass
 class EventRecord:
     event_id: str
@@ -63,7 +63,7 @@ class EventRecord:
 
 
 class EventStore(Protocol):
-    """Publisher event-store interface (DESIGN.md §7.3, §10.9, §20, §31).
+    """Publisher event-store interface (spec §7.3, §10.9, §20, §31).
 
     The publisher depends only on these methods, so any backend (in-memory,
     Postgres, ...) can be plugged in. Cursors are opaque, per-topic, and
@@ -110,7 +110,7 @@ class EventStore(Protocol):
         ...
 
 
-# --- subscription store contract (DESIGN.md §14, §25) ---
+# --- subscription store contract (spec §14, §25) ---
 @dataclass
 class DeadLetter:
     """An event permanently undeliverable to a subscription (§19)."""
@@ -141,7 +141,7 @@ class DeliveryAttempt:
 
 
 class SubscriptionStore(Protocol):
-    """Publisher subscription-store interface (DESIGN.md §14, §25).
+    """Publisher subscription-store interface (spec §14, §25).
 
     The publisher depends only on these methods, so any backend (in-memory,
     Postgres, ...) can be plugged in independently of the event-store backend.
@@ -172,10 +172,10 @@ class SubscriptionStore(Protocol):
     def dead_letters(self) -> list[DeadLetter]: ...
 
 
-# --- retry queue contract (DESIGN.md §19.4, §19.5) ---
+# --- retry queue contract (spec §19.4, §19.5) ---
 @dataclass
 class RetryItem:
-    """One event pending re-delivery to one subscription (DESIGN.md §19.4)."""
+    """One event pending re-delivery to one subscription (spec §19.4)."""
 
     retry_id: str
     subscription_id: str
@@ -225,10 +225,10 @@ class RetryablePublisher(Protocol):
     async def retry_delivery(self, item: RetryItem, queue: RetryQueue) -> None: ...
 
 
-# --- delivery transport contract (DESIGN.md §18) ---
+# --- delivery transport contract (spec §18) ---
 @dataclass
 class DeliveryResult:
-    """Outcome of one delivery attempt (DESIGN.md §10.10, §19)."""
+    """Outcome of one delivery attempt (spec §10.10, §19)."""
 
     ack: bool
     retry: bool = True

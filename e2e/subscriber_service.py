@@ -1,4 +1,4 @@
-"""Subscriber service for the multi-container E2E (DESIGN.md §12.2, §18, §21).
+"""Subscriber service for the multi-container E2E (spec §12.2, §18, §21).
 
 Receives A2A-message and webhook deliveries, verifies signatures by fetching the
 publisher's JWKS over HTTP (RFC 8785 canonicalization + key rotation across

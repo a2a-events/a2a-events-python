@@ -1,4 +1,4 @@
-"""Selector matching engine — the normative algebra from DESIGN.md §10.4.
+"""Selector matching engine — the normative algebra from spec §10.4.
 
 Two conformant publishers must match the same selector against the same event
 identically, so these rules are intentionally explicit.

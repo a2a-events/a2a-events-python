@@ -1,4 +1,4 @@
-"""Client-side automatic lease renewal (DESIGN.md §14.3)."""
+"""Client-side automatic lease renewal (spec §14.3)."""
 
 from __future__ import annotations
 

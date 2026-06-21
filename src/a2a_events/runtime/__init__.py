@@ -1,4 +1,4 @@
-"""Reference runtime for A2A Events publishers (DESIGN.md §7.3, §7.4).
+"""Reference runtime for A2A Events publishers (spec §7.3, §7.4).
 
 The runtime is split along a contract/implementation seam:
 

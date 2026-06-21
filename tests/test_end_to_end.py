@@ -1,4 +1,4 @@
-"""End-to-end vertical slice over the JSON-RPC surface (DESIGN.md §35).
+"""End-to-end vertical slice over the JSON-RPC surface (spec §35).
 
 subscribe -> deliver -> implicit ack -> replay, plus selector filtering,
 delivery modes, dedupe, dead-letter, and lease expiry.

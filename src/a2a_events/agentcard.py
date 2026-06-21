@@ -1,4 +1,4 @@
-"""AgentCard discovery and trust (DESIGN.md §12.2, §21.2).
+"""AgentCard discovery and trust (spec §12.2, §21.2).
 
 The publisher must not deliver to arbitrary URLs a subscriber hands it. Instead
 it fetches the subscriber's A2A AgentCard, parses the A2A Events extension
@@ -50,7 +50,7 @@ def _b64url(raw: bytes) -> str:
 
 @dataclass
 class CardTrustPolicy:
-    """Trust checks applied to a fetched AgentCard (DESIGN.md §21.2)."""
+    """Trust checks applied to a fetched AgentCard (spec §21.2)."""
 
     require_https: bool = False
     require_same_origin: bool = False
@@ -199,7 +199,7 @@ def _check_endpoint_trust(
 
 @dataclass
 class AgentCardResolver:
-    """Fetches and parses a subscriber AgentCard over HTTP (DESIGN.md §12.2).
+    """Fetches and parses a subscriber AgentCard over HTTP (spec §12.2).
 
     Plugs into the publisher's ``card_resolver`` seam. A fetch failure surfaces
     as ``SUBSCRIBER_CARD_UNREACHABLE``; a card that fails parsing/trust surfaces

@@ -1,4 +1,4 @@
-"""Conformance suite (DESIGN.md §33).
+"""Conformance suite (spec §33).
 
 Drives the language-agnostic fixtures under ``conformance/fixtures/`` against
 this implementation, checks the published ``schemas/`` for drift, and

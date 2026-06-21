@@ -1,4 +1,4 @@
-"""Postgres connection-pool concurrency (DESIGN.md §25, async deployments).
+"""Postgres connection-pool concurrency (spec §25, async deployments).
 
 These prove the pooled backends run store calls concurrently instead of behind
 a single connection — the bottleneck the pool replaces. Skipped unless

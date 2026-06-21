@@ -1,4 +1,4 @@
-"""Postgres event store (DESIGN.md §25) implementing the ``EventStore`` protocol.
+"""Postgres event store (spec §25) implementing the ``EventStore`` protocol.
 
 A reference backend adapter: the publisher observes identical external
 semantics whether it uses :class:`InMemoryEventStore` or this. Cursors keep

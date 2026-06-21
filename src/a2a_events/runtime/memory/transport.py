@@ -1,4 +1,4 @@
-"""In-memory delivery transport (DESIGN.md §18).
+"""In-memory delivery transport (spec §18).
 
 The zero-dependency default :class:`~a2a_events.runtime.contracts.Transport`:
 routes deliveries to in-process subscriber receivers by target key, so

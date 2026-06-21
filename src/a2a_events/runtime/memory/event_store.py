@@ -109,7 +109,7 @@ class InMemoryEventStore:
             log.events = kept
         return removed
 
-    # --- reads / replay (DESIGN.md §20, §31) ---
+    # --- reads / replay (spec §20, §31) ---
     def _live_events(self, topic: str) -> list[EventRecord]:
         """Events still inside the topic's retention window."""
         log = self._logs[topic]

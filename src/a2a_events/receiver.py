@@ -1,4 +1,4 @@
-"""Subscriber-side event receiver core (DESIGN.md §21.3, §19.2, §10.10).
+"""Subscriber-side event receiver core (spec §21.3, §19.2, §10.10).
 
 Shared by the in-memory subscriber and the HTTP subscriber app: verify the
 signature, deduplicate by event id, run the user handler, and implicitly ack
@@ -22,7 +22,7 @@ KeyResolver = Callable[[str], Ed25519PublicKey | Awaitable[Ed25519PublicKey]]
 EventHandler = Callable[[dict[str, Any]], DeliveryResult | None]
 
 # A2A-message deliveries carry the signature/timestamp/keyId under the extension
-# URI key in the message metadata (DESIGN.md §18.1). Must match the publisher.
+# URI key in the message metadata (spec §18.1). Must match the publisher.
 EXTENSION_METADATA_KEY = EXTENSION_URI
 
 

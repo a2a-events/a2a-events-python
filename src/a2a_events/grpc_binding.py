@@ -1,4 +1,4 @@
-"""gRPC transport binding for the ``a2a.events.*`` surface (DESIGN.md §12.3).
+"""gRPC transport binding for the ``a2a.events.*`` surface (spec §12.3).
 
 A2A core offers a gRPC binding alongside JSON-RPC; this provides the equivalent
 for A2A Events. Like the optional HTTP+JSON binding, every gRPC method maps 1:1
@@ -109,7 +109,7 @@ def add_a2a_events_servicer(
     *,
     authenticator: CallerAuthenticator | None = None,
 ) -> None:
-    """Register the A2A Events gRPC service on ``server`` (DESIGN.md §12.3)."""
+    """Register the A2A Events gRPC service on ``server`` (spec §12.3)."""
     handlers = {
         rpc_name: grpc.unary_unary_rpc_method_handler(
             _make_handler(publisher, method, authenticator),
@@ -123,7 +123,7 @@ def add_a2a_events_servicer(
 
 
 class A2AEventsGrpcClient:
-    """Typed-ish client for the A2A Events gRPC binding (DESIGN.md §12.3)."""
+    """Typed-ish client for the A2A Events gRPC binding (spec §12.3)."""
 
     def __init__(self, channel: grpc.aio.Channel) -> None:
         self._channel = channel

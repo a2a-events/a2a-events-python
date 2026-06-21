@@ -1,4 +1,4 @@
-"""Durable subscriptions survive a publisher restart (DESIGN.md §14, §25).
+"""Durable subscriptions survive a publisher restart (spec §14, §25).
 
 A "restart" is modelled by constructing a fresh ``A2AEventsPublisher`` over the
 *same* event + subscription stores. Because the publisher keeps no subscription

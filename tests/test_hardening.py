@@ -1,6 +1,6 @@
 """HTTP-hardening behaviours: timestamp skew, retry backoff, SSRF-at-subscribe.
 
-(DESIGN.md §19.4 retry, §21 / §21.2 / §21.3.)
+(spec §19.4 retry, §21 / §21.2 / §21.3.)
 """
 
 from __future__ import annotations

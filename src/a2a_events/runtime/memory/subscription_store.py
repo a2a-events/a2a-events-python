@@ -1,4 +1,4 @@
-"""In-memory durable subscription state (DESIGN.md §14, §25).
+"""In-memory durable subscription state (spec §14, §25).
 
 The zero-dependency default
 :class:`~a2a_events.runtime.contracts.SubscriptionStore` backend. It keeps

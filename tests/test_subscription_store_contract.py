@@ -4,7 +4,7 @@ Runs against InMemorySubscriptionStore always, and PostgresSubscriptionStore
 when ``A2A_EVENTS_TEST_DATABASE_URL`` points at a Postgres instance (otherwise
 the postgres params are skipped). ``reopen()`` returns a store reading the same
 durable state — for Postgres a fresh connection, which is what proves a
-subscription survives a publisher restart (DESIGN.md §14, §25).
+subscription survives a publisher restart (spec §14, §25).
 """
 
 from __future__ import annotations

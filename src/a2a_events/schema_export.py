@@ -1,4 +1,4 @@
-"""Build published JSON Schemas from the typed models (DESIGN.md §27 schemas/).
+"""Build published JSON Schemas from the typed models (spec §27 schemas/).
 
 The committed files under ``schemas/`` are the language-agnostic contract;
 ``scripts/export_schemas.py`` writes them and ``tests/test_conformance.py``
@@ -23,7 +23,7 @@ def _wrap(name: str, schema: dict[str, Any]) -> dict[str, Any]:
 
 
 def error_schema() -> dict[str, Any]:
-    """JSON-RPC error object for A2A Events (DESIGN.md §30)."""
+    """JSON-RPC error object for A2A Events (spec §30)."""
     return {
         "title": "A2AEventsError",
         "description": "JSON-RPC 2.0 error object with an A2A Events symbolic code.",

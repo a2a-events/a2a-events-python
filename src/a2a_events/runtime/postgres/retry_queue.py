@@ -1,4 +1,4 @@
-"""Postgres-backed durable retry queue (DESIGN.md §19.4, §25).
+"""Postgres-backed durable retry queue (spec §19.4, §25).
 
 The crash-surviving counterpart to :class:`InMemoryRetryQueue`: pending retries
 live in ``a2a_retry_queue`` and are claimed with ``FOR UPDATE SKIP LOCKED`` plus

@@ -1,4 +1,4 @@
-"""Client-side automatic lease renewal (DESIGN.md §14.3, §26.2).
+"""Client-side automatic lease renewal (spec §14.3, §26.2).
 
 A subscription is only live while its lease is valid, so a subscriber must
 renew before it lapses — the spec recommends renewing once 50%–70% of the

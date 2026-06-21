@@ -1,4 +1,4 @@
-"""Observability: metrics, traceId, and the §32 snapshot (DESIGN.md §32)."""
+"""Observability: metrics, traceId, and the §32 snapshot (spec §32)."""
 
 from __future__ import annotations
 

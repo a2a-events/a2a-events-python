@@ -1,4 +1,4 @@
-"""SSRF guard on resolved delivery endpoints (DESIGN.md §21.2)."""
+"""SSRF guard on resolved delivery endpoints (spec §21.2)."""
 
 from __future__ import annotations
 

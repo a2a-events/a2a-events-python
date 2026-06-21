@@ -1,4 +1,4 @@
-"""gRPC transport binding tests (DESIGN.md §12.3).
+"""gRPC transport binding tests (spec §12.3).
 
 Runs a real ``grpc.aio`` server + client against an in-memory publisher and
 exercises the surface plus error mapping.

@@ -1,4 +1,4 @@
-"""Metrics and tracing seams (DESIGN.md §32).
+"""Metrics and tracing seams (spec §32).
 
 The runtime emits the §32 metrics — published-event and delivery-attempt counts,
 delivery success/latency, retry and dead-letter counts, selector match rate,

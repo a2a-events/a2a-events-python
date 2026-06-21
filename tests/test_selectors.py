@@ -1,4 +1,4 @@
-"""Selector algebra (DESIGN.md §10.4)."""
+"""Selector algebra (spec §10.4)."""
 
 import pytest
 

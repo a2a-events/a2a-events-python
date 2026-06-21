@@ -1,4 +1,4 @@
-"""Control-plane authorization + delivery-token tests (DESIGN.md §21.1, §21.4)."""
+"""Control-plane authorization + delivery-token tests (spec §21.1, §21.4)."""
 
 from __future__ import annotations
 

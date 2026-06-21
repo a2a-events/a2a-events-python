@@ -1,4 +1,4 @@
-"""Pagination, selector limits, and rate limiting (DESIGN.md §14.5, §22, §29)."""
+"""Pagination, selector limits, and rate limiting (spec §14.5, §22, §29)."""
 
 from __future__ import annotations
 

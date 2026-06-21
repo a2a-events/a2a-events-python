@@ -1,4 +1,4 @@
-"""Shared Postgres connection pooling (DESIGN.md §25, async deployments).
+"""Shared Postgres connection pooling (spec §25, async deployments).
 
 The original Postgres backends held a single connection and relied on the
 publisher serializing every store call behind one global ``asyncio.Lock`` — safe

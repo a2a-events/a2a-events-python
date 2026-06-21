@@ -1,5 +1,5 @@
 """Control-plane authentication, topic authorization, and delivery tokens
-(DESIGN.md §21.1, §21.4, §21.5).
+(spec §21.1, §21.4, §21.5).
 
 A2A Events reuses A2A's existing security machinery rather than inventing a new
 login handshake. This module provides the three seams the publisher needs:
@@ -36,7 +36,7 @@ from .models import Subscription
 
 @dataclass(frozen=True)
 class AuthIdentity:
-    """An authenticated control-plane caller (DESIGN.md §21.1).
+    """An authenticated control-plane caller (spec §21.1).
 
     ``subject`` is the stable principal (e.g. the subscriber's AgentCard URL or
     an OAuth2 ``sub``); ``scopes`` and ``claims`` carry whatever the
@@ -71,7 +71,7 @@ def bearer_token(headers: Mapping[str, str]) -> str | None:
 
 @runtime_checkable
 class TopicAuthorizer(Protocol):
-    """Decides topic access at subscribe and delivery time (DESIGN.md §21.4)."""
+    """Decides topic access at subscribe and delivery time (spec §21.4)."""
 
     def authorize_subscribe(
         self, identity: AuthIdentity | None, topics: list[str]
@@ -85,7 +85,7 @@ class TopicAuthorizer(Protocol):
 
 
 class AllowlistAuthorizer:
-    """A simple grant-table :class:`TopicAuthorizer` (DESIGN.md §21.4).
+    """A simple grant-table :class:`TopicAuthorizer` (spec §21.4).
 
     ``public_topics`` are open to everyone (even anonymous callers).
     ``grants`` maps a principal (``AuthIdentity.subject``, which for the
@@ -141,7 +141,7 @@ class AllowlistAuthorizer:
 
 
 class DeliveryTokenIssuer:
-    """Mints per-subscription bearer delivery credentials (DESIGN.md §21.5).
+    """Mints per-subscription bearer delivery credentials (spec §21.5).
 
     The token is a keyed HMAC over the subscription id, so it is unique per
     subscription, deterministic (the publisher recomputes it on every delivery

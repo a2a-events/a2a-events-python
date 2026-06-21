@@ -1,4 +1,4 @@
-"""Optional HTTP+JSON binding over the publisher app (DESIGN.md §29 table)."""
+"""Optional HTTP+JSON binding over the publisher app (spec §29 table)."""
 
 from __future__ import annotations
 

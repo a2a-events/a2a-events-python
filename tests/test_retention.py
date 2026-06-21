@@ -1,4 +1,4 @@
-"""Retention compaction tests (DESIGN.md §31).
+"""Retention compaction tests (spec §31).
 
 Verifies that compaction physically removes expired events while keeping cursor
 offsets monotonic (never reused), across both store backends.

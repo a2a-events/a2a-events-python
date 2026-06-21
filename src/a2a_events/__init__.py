@@ -2,8 +2,8 @@
 
 This package is a v0.1 vertical slice: an in-memory publisher runtime, the
 canonical ``a2a.events.*`` JSON-RPC surface, A2A-message + webhook delivery,
-selectors, leases, opaque cursors, signed delivery, and replay. See
-``DESIGN.md`` for the full specification.
+selectors, leases, opaque cursors, signed delivery, and replay. See the full
+specification at https://a2a-events.github.io/a2a-events/specification/.
 """
 
 from __future__ import annotations

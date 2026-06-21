@@ -1,4 +1,4 @@
-"""Subscriber-side helpers (DESIGN.md §26.2).
+"""Subscriber-side helpers (spec §26.2).
 
 ``InMemorySubscriber`` is the receiver half of the in-memory vertical slice:
 it registers webhook and A2A-message handlers on an ``InMemoryTransport`` and

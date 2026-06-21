@@ -1,4 +1,4 @@
-"""Opaque page tokens for list methods (DESIGN.md §14.5, §29).
+"""Opaque page tokens for list methods (spec §14.5, §29).
 
 List endpoints (``ListSubscriptions``, ``ListDeliveryAttempts``) return a
 ``nextPageToken`` the caller passes back to fetch the next page. The token is an

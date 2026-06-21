@@ -3,7 +3,7 @@
 Runs against InMemoryEventStore always, and PostgresEventStore when
 ``A2A_EVENTS_TEST_DATABASE_URL`` points at a Postgres instance (otherwise the
 postgres params are skipped). This is what guarantees the Postgres adapter
-preserves the external semantics (DESIGN.md §6, §10.9, §31).
+preserves the external semantics (spec §6, §10.9, §31).
 """
 
 from __future__ import annotations

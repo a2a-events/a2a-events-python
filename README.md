@@ -8,9 +8,10 @@ AgentCard-native durable event subscriptions for the
 
 > **Spec / source of truth:** the protocol, design, published JSON Schemas, and
 > conformance vectors live in the language-neutral
-> [`a2a-events`](https://github.com/a2a-events/a2a-events) repo. Start with its
-> [`DESIGN.md`](https://github.com/a2a-events/a2a-events/blob/main/DESIGN.md) and
-> [docs](https://github.com/a2a-events/a2a-events/tree/main/docs). This repo is
+> [`a2a-events`](https://github.com/a2a-events/a2a-events) repo and rendered as a
+> docs site. Start with the
+> [specification](https://a2a-events.github.io/a2a-events/specification/) and the
+> [docs site](https://a2a-events.github.io/a2a-events/). This repo is
 > *an* implementation of that contract.
 
 ## Install

@@ -1,4 +1,4 @@
-"""Event signing and verification (DESIGN.md §21.3).
+"""Event signing and verification (spec §21.3).
 
 Signature input is ``timestamp + "." + canonical_json(event)`` where the
 canonical form is JCS (RFC 8785). Default algorithm is EdDSA (Ed25519).
@@ -99,7 +99,7 @@ def _b64url_decode(value: str) -> bytes:
 
 @dataclass
 class SigningKey:
-    """A publisher signing key with a stable ``kid`` (DESIGN.md §21.3)."""
+    """A publisher signing key with a stable ``kid`` (spec §21.3)."""
 
     kid: str
     _private: Ed25519PrivateKey
@@ -127,7 +127,7 @@ class SigningKey:
         return _b64url(raw)
 
     def to_jwk(self) -> dict[str, str]:
-        """Render an OKP/Ed25519 JWK for the JWKS endpoint (DESIGN.md §21.3)."""
+        """Render an OKP/Ed25519 JWK for the JWKS endpoint (spec §21.3)."""
         return {
             "kty": "OKP",
             "crv": "Ed25519",
@@ -138,7 +138,7 @@ class SigningKey:
 
 
 class SigningKeySet:
-    """A publisher's set of signing keys with one active key (DESIGN.md §21.3).
+    """A publisher's set of signing keys with one active key (spec §21.3).
 
     Supports key rotation: pre-publish the next key (so subscribers can fetch it
     by ``kid`` before it is used), activate it, and retire the old one. The JWKS

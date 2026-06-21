@@ -1,4 +1,4 @@
-"""Selector resource limits and rate limiting (DESIGN.md §22).
+"""Selector resource limits and rate limiting (spec §22).
 
 Selectors can be user-generated and potentially expensive, and control-plane
 calls (subscribe, replay, ...) can be abused, so publishers should enforce
@@ -24,7 +24,7 @@ from .models import FieldFilterSelector, KeywordSearchSelector, Selector
 
 @dataclass(frozen=True)
 class SelectorLimits:
-    """Bounds on selector size (DESIGN.md §22 resource limits)."""
+    """Bounds on selector size (spec §22 resource limits)."""
 
     max_keywords: int = 50
     max_keyword_length: int = 256
@@ -79,7 +79,7 @@ class RateLimiter(Protocol):
 
 
 class TokenBucketRateLimiter:
-    """A per-principal token-bucket rate limiter (DESIGN.md §22 max rate).
+    """A per-principal token-bucket rate limiter (spec §22 max rate).
 
     Each ``(key, operation)`` gets a bucket of ``capacity`` tokens refilling at
     ``rate`` tokens/second; a call consumes one token and is rejected with

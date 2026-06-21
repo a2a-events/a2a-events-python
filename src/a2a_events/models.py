@@ -1,4 +1,4 @@
-"""Typed protocol models for A2A Events (DESIGN.md §10, §16, §23)."""
+"""Typed protocol models for A2A Events (spec §10, §16, §23)."""
 
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ class SubscriptionStatus(StrEnum):
     DELETED = "deleted"
 
 
-# --- Selectors (DESIGN.md §10.4) ---------------------------------------------
+# --- Selectors (spec §10.4) ---------------------------------------------
 
 
 class FieldFilterSelector(BaseModel):
@@ -45,7 +45,7 @@ Selector = Annotated[
 ]
 
 
-# --- Topics (DESIGN.md §10.3, §13) -------------------------------------------
+# --- Topics (spec §10.3, §13) -------------------------------------------
 
 
 class Topic(BaseModel):
@@ -67,7 +67,7 @@ class Topic(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
-# --- Delivery preference (DESIGN.md §14.1, §23.1) ----------------------------
+# --- Delivery preference (spec §14.1, §23.1) ----------------------------
 
 
 class DeliveryPreference(BaseModel):
@@ -75,7 +75,7 @@ class DeliveryPreference(BaseModel):
 
     mode: DeliveryMode
     # AgentCard-relative reference to the receive capability, e.g.
-    # "agent-card:events.receive" (DESIGN.md §15 safe routing).
+    # "agent-card:events.receive" (spec §15 safe routing).
     endpoint_ref: str = Field(default="agent-card:events.receive", alias="endpointRef")
 
     model_config = ConfigDict(populate_by_name=True)
@@ -91,7 +91,7 @@ class ResolvedDelivery(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
-# --- CloudEvents envelope (DESIGN.md §16) ------------------------------------
+# --- CloudEvents envelope (spec §16) ------------------------------------
 
 
 class A2AEventsAttributes(BaseModel):
@@ -121,7 +121,7 @@ class CloudEvent(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
-# --- Subscription (DESIGN.md §23.1) ------------------------------------------
+# --- Subscription (spec §23.1) ------------------------------------------
 
 
 class Subscription(BaseModel):
@@ -134,7 +134,7 @@ class Subscription(BaseModel):
     delivery: ResolvedDelivery
     created_at: datetime = Field(alias="createdAt")
     lease_until: datetime = Field(alias="leaseUntil")
-    # Per-topic last-acked cursor map (DESIGN.md §10.9 "per-topic cursor state").
+    # Per-topic last-acked cursor map (spec §10.9 "per-topic cursor state").
     cursors: dict[str, str] = Field(default_factory=dict)
     metadata: dict[str, Any] = Field(default_factory=dict)
 

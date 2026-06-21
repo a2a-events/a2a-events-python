@@ -1,4 +1,4 @@
-"""Error model for A2A Events (DESIGN.md §30).
+"""Error model for A2A Events (spec §30).
 
 Errors are surfaced as JSON-RPC 2.0 error objects. The symbolic A2A Events
 code travels in ``data.code``; the numeric ``code`` is a JSON-RPC code.
@@ -98,7 +98,7 @@ class A2AEventsError(Exception):
         return _CODE_TABLE[self.code][1]
 
     def to_error_object(self) -> dict[str, Any]:
-        """Render the JSON-RPC ``error`` member (DESIGN.md §30)."""
+        """Render the JSON-RPC ``error`` member (spec §30)."""
         return {
             "code": self.jsonrpc_code,
             "message": self.message,

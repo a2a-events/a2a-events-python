@@ -1,4 +1,4 @@
-"""Background retry worker (DESIGN.md §19.4, §19.5).
+"""Background retry worker (spec §19.4, §19.5).
 
 The reference dispatcher retries failed deliveries inline (sleep, re-send) so a
 single ``publish`` call blocks until the event is delivered or dead-lettered.
@@ -22,7 +22,7 @@ def _now() -> datetime:
 
 
 class RetryWorker:
-    """Drains a :class:`RetryQueue` by re-attempting delivery (DESIGN.md §19.4).
+    """Drains a :class:`RetryQueue` by re-attempting delivery (spec §19.4).
 
     Each due item is re-sent through the publisher; on success it is completed,
     on a retryable failure it is rescheduled with exponential backoff, and at

@@ -1,4 +1,4 @@
-"""In-memory durable-style retry queue (DESIGN.md §19.4, §19.5).
+"""In-memory durable-style retry queue (spec §19.4, §19.5).
 
 The zero-dependency default :class:`~a2a_events.runtime.contracts.RetryQueue`
 backend. It is thread-safe so the publisher (enqueue) and the retry worker

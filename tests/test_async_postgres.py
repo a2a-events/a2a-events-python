@@ -1,4 +1,4 @@
-"""Non-blocking store access via offload_store (DESIGN.md §25, async deploys).
+"""Non-blocking store access via offload_store (spec §25, async deploys).
 
 The publisher can run blocking (e.g. sync Postgres) store calls in a worker
 thread so they never stall the event loop. The first test proves the loop keeps

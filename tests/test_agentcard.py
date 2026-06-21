@@ -1,4 +1,4 @@
-"""AgentCard discovery and trust tests (DESIGN.md §12.2, §21.2)."""
+"""AgentCard discovery and trust tests (spec §12.2, §21.2)."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Publisher signing-key rotation and JWKS discovery (DESIGN.md §21.3)."""
+"""Publisher signing-key rotation and JWKS discovery (spec §21.3)."""
 
 from __future__ import annotations
 

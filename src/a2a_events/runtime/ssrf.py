@@ -1,4 +1,4 @@
-"""SSRF guard for resolved delivery endpoints (DESIGN.md §21.2).
+"""SSRF guard for resolved delivery endpoints (spec §21.2).
 
 The publisher already resolves delivery targets *only* from the subscriber's
 AgentCard (never from a raw URL in the subscribe request), which satisfies the

@@ -1,4 +1,4 @@
-"""JSON-RPC dispatch for the ``a2a.events.*`` method surface (DESIGN.md §29).
+"""JSON-RPC dispatch for the ``a2a.events.*`` method surface (spec §29).
 
 This is the canonical transport. ``handle`` takes a parsed JSON-RPC request
 object and returns a JSON-RPC response object. The HTTP/activation-handshake

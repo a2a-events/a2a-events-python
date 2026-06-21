@@ -1,4 +1,4 @@
-"""Cursor ordering and signing (DESIGN.md §10.9, §21.3)."""
+"""Cursor ordering and signing (spec §10.9, §21.3)."""
 
 from a2a_events import cursor
 from a2a_events.signing import SigningKey, verify

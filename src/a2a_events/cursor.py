@@ -1,4 +1,4 @@
-"""Opaque, per-topic cursors (DESIGN.md §10.9).
+"""Opaque, per-topic cursors (spec §10.9).
 
 Cursors are opaque to subscribers: they store and return them but must not
 parse or construct them. Within a topic, cursors are totally ordered by
@@ -11,7 +11,7 @@ encoding is an implementation detail, never part of the protocol contract.
 
 from __future__ import annotations
 
-# Sentinels accepted by ``fromCursor`` (DESIGN.md §14.1). Never returned as an
+# Sentinels accepted by ``fromCursor`` (spec §14.1). Never returned as an
 # event cursor.
 EARLIEST = "earliest"
 LATEST = "latest"

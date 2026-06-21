@@ -1,4 +1,4 @@
-"""Publisher service for the multi-container E2E (DESIGN.md §12, §18, §21, §25).
+"""Publisher service for the multi-container E2E (spec §12, §18, §21, §25).
 
 Serves the canonical JSON-RPC surface, the HTTP+JSON binding, and JWKS, backed
 by pooled Postgres with non-blocking offload. It wires the full feature set:

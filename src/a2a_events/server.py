@@ -1,4 +1,4 @@
-"""HTTP servers and key resolution (DESIGN.md §12.3, §18, §21.3).
+"""HTTP servers and key resolution (spec §12.3, §18, §21.3).
 
 - :func:`create_publisher_app` exposes the canonical JSON-RPC surface plus the
   JWKS ``signingKeysUrl`` endpoint, and performs the ``A2A-Extensions``
@@ -60,7 +60,7 @@ async def _rpc_over_http(
 
 
 def _activated(header_value: str | None) -> list[str]:
-    """Return the activated extension URIs for the handshake (DESIGN.md §12.3)."""
+    """Return the activated extension URIs for the handshake (spec §12.3)."""
     if not header_value:
         return []
     requested = {u.strip() for u in header_value.split(",") if u.strip()}
@@ -68,7 +68,7 @@ def _activated(header_value: str | None) -> list[str]:
 
 
 def _receive_status(res: DeliveryResult) -> int:
-    """Map a delivery result to the webhook response status (DESIGN.md §10.10)."""
+    """Map a delivery result to the webhook response status (spec §10.10)."""
     if res.status_code is not None:
         return res.status_code
     if res.ack:
@@ -238,7 +238,7 @@ def create_subscriber_app(receiver: EventReceiver) -> FastAPI:
 
 
 class JwksKeyResolver:
-    """Resolves publisher signing keys from a JWKS endpoint (DESIGN.md §21.3)."""
+    """Resolves publisher signing keys from a JWKS endpoint (spec §21.3)."""
 
     def __init__(self, jwks_url: str, client: httpx.AsyncClient) -> None:
         self._jwks_url = jwks_url

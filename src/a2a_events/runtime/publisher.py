@@ -1,4 +1,4 @@
-"""Publisher runtime facade (DESIGN.md §7.3, §14, §15, §19, §20).
+"""Publisher runtime facade (spec §7.3, §14, §15, §19, §20).
 
 Wires together the topic registry, subscription + lease management, the
 selector-matching dispatcher, signed delivery with retry/dead-letter, and

@@ -1,4 +1,4 @@
-"""Durable retry queue + worker tests (DESIGN.md §19.4, §19.5)."""
+"""Durable retry queue + worker tests (spec §19.4, §19.5)."""
 
 from __future__ import annotations
 

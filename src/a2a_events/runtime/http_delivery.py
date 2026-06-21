@@ -1,4 +1,4 @@
-"""HTTP delivery transport (DESIGN.md §18, §19.4).
+"""HTTP delivery transport (spec §18, §19.4).
 
 Implements the :class:`Transport` protocol over httpx:
 
@@ -67,7 +67,7 @@ class HttpxTransport:
             return _result_from_status(resp.status_code)
 
         # A2A returns a JSON-RPC envelope. The subscriber conveys ack/nack in
-        # the result (or a JSON-RPC error) per DESIGN.md §18.1.
+        # the result (or a JSON-RPC error) per spec §18.1.
         payload = resp.json()
         if "error" in payload:
             return DeliveryResult(
