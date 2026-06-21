@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  python-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+      - name: Sync dependencies
+        run: uv sync --extra dev --python ${{ matrix.python-version }}
+      - name: Format check (black)
+        run: uv run black --check .
+      - name: Lint (ruff)
+        run: uv run ruff check src tests examples scripts
+      - name: Type check (mypy)
+        run: uv run mypy src
+      - name: Test (pytest)
+        run: uv run pytest -q
+
+  postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: pw
+          POSTGRES_DB: a2a
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: Set up Python
+        run: uv python install 3.12
+      - name: Sync dependencies
+        run: uv sync --extra dev --python 3.12
+      - name: Store-contract tests against Postgres
+        env:
+          A2A_EVENTS_TEST_DATABASE_URL: postgresql://postgres:pw@localhost:5432/a2a
+        run: >-
+          uv run pytest
+          tests/test_store_contract.py
+          tests/test_subscription_store_contract.py
+          tests/test_async_postgres.py
+          -q
