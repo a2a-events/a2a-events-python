@@ -19,6 +19,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from fastapi import FastAPI, Query, Request, Response
 from fastapi.responses import JSONResponse
 
+from . import methods as m
 from .auth import AuthIdentity, CallerAuthenticator
 from .errors import http_status_for_error
 from .jsonrpc import handle
@@ -109,14 +110,14 @@ def create_publisher_app(
 
     @app.get("/a2a-events/topics")
     async def http_list_topics() -> JSONResponse:
-        return await _rpc_over_http(publisher, "a2a.events.ListTopics", {})
+        return await _rpc_over_http(publisher, m.LIST_TOPICS, {})
 
     @app.post("/a2a-events/subscriptions")
     async def http_subscribe(request: Request) -> JSONResponse:
         params = await _json_body(request)
         return await _rpc_over_http(
             publisher,
-            "a2a.events.Subscribe",
+            m.SUBSCRIBE,
             params,
             ok_status=201,
             caller=caller_of(request),
@@ -130,7 +131,7 @@ def create_publisher_app(
         params: dict[str, Any] = {"pageToken": page_token} if page_token else {}
         return await _rpc_over_http(
             publisher,
-            "a2a.events.ListSubscriptions",
+            m.LIST_SUBSCRIPTIONS,
             params,
             caller=caller_of(request),
         )
@@ -141,7 +142,7 @@ def create_publisher_app(
     ) -> JSONResponse:
         return await _rpc_over_http(
             publisher,
-            "a2a.events.GetSubscription",
+            m.GET_SUBSCRIPTION,
             {"subscriptionId": subscription_id},
             caller=caller_of(request),
         )
@@ -152,7 +153,7 @@ def create_publisher_app(
     ) -> JSONResponse:
         return await _rpc_over_http(
             publisher,
-            "a2a.events.DeleteSubscription",
+            m.DELETE_SUBSCRIPTION,
             {"subscriptionId": subscription_id},
             caller=caller_of(request),
         )
@@ -168,7 +169,7 @@ def create_publisher_app(
             params["pageToken"] = page_token
         return await _rpc_over_http(
             publisher,
-            "a2a.events.ListDeliveryAttempts",
+            m.LIST_DELIVERY_ATTEMPTS,
             params,
             caller=caller_of(request),
         )
@@ -178,7 +179,7 @@ def create_publisher_app(
         params = {"subscriptionId": subscription_id, **await _json_body(request)}
         return await _rpc_over_http(
             publisher,
-            "a2a.events.RenewSubscription",
+            m.RENEW_SUBSCRIPTION,
             params,
             caller=caller_of(request),
         )
@@ -187,15 +188,13 @@ def create_publisher_app(
     async def http_replay(subscription_id: str, request: Request) -> JSONResponse:
         params = {"subscriptionId": subscription_id, **await _json_body(request)}
         return await _rpc_over_http(
-            publisher, "a2a.events.Replay", params, caller=caller_of(request)
+            publisher, m.REPLAY, params, caller=caller_of(request)
         )
 
     @app.post("/a2a-events/subscriptions/{subscription_id}:ack")
     async def http_ack(subscription_id: str, request: Request) -> JSONResponse:
         params = {"subscriptionId": subscription_id, **await _json_body(request)}
-        return await _rpc_over_http(
-            publisher, "a2a.events.Ack", params, caller=caller_of(request)
-        )
+        return await _rpc_over_http(publisher, m.ACK, params, caller=caller_of(request))
 
     return app
 
@@ -208,7 +207,7 @@ def create_subscriber_app(receiver: EventReceiver) -> FastAPI:
         activated = _activated(request.headers.get(EXTENSIONS_HEADER))
         body = await request.json()
         headers = {EXTENSIONS_HEADER: ", ".join(activated)} if activated else {}
-        if body.get("method") != "a2a.SendMessage":
+        if body.get("method") != m.A2A_SEND_MESSAGE:
             return JSONResponse(
                 {
                     "jsonrpc": "2.0",

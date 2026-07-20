@@ -46,14 +46,17 @@ app = create_subscriber_app(receiver)
 
 
 def _agent_card(receive_url: str, a2a_url: str) -> dict[str, Any]:
+    # A2A v1.0 card shape: endpoints are declared via supportedInterfaces.
     return {
         "name": "Enrichment Agent",
-        "url": a2a_url,
+        "description": "Enriches discovered AgentCards.",
         "version": "1.0.0",
+        "supportedInterfaces": [{"url": a2a_url, "protocolBinding": "JSONRPC"}],
         "capabilities": {
             "extensions": [
                 {
                     "uri": EXTENSION_URI,
+                    "description": "A2A Events subscriber",
                     "params": {
                         "role": "subscriber",
                         "receiveUrl": receive_url,
@@ -62,6 +65,9 @@ def _agent_card(receive_url: str, a2a_url: str) -> dict[str, Any]:
                 }
             ]
         },
+        "defaultInputModes": ["application/json"],
+        "defaultOutputModes": ["application/json"],
+        "skills": [],
     }
 
 
@@ -89,8 +95,8 @@ async def received() -> dict[str, Any]:
             {
                 "id": e["id"],
                 "cardUrl": e["data"].get("cardUrl"),
-                "cursor": e["a2aevents"]["cursor"],
-                "traceId": e["a2aevents"].get("traceId"),
+                "cursor": e["a2acursor"],
+                "traceId": e.get("a2atraceid"),
             }
             for e in receiver.received
         ],

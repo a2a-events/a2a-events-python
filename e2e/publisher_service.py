@@ -20,6 +20,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from fastapi import Request
 
 from a2a_events import (
+    EXTENSION_URI,
     A2AEventsPublisher,
     AgentCardResolver,
     AllowlistAuthorizer,
@@ -156,12 +157,10 @@ async def admin_deliver_skewed() -> dict[str, Any]:
         "time": ts,
         "datacontenttype": "application/json",
         "data": {"cardUrl": "https://skew"},
-        "a2aevents": {
-            "extension": "https://example.com/a2a-events/extensions/events/v1",
-            "publisherCardUrl": PUBLISHER_CARD,
-            "topic": TOPIC,
-            "cursor": f"{TOPIC}:0000000000000000",
-        },
+        "a2aextension": EXTENSION_URI,
+        "a2apublisher": PUBLISHER_CARD,
+        "a2atopic": TOPIC,
+        "a2acursor": f"{TOPIC}:0000000000000000",
     }
     signature = publisher.signing_key.sign(ts, event)
     headers = {

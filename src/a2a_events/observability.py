@@ -7,10 +7,10 @@ lease-renewal rate — and gauges (subscription / expired counts) through a smal
 (zero overhead); pass :class:`InMemoryMetrics` to collect them, or adapt the
 protocol to Prometheus/OpenTelemetry.
 
-Each event also carries a deterministic ``traceId`` (derived from its event id,
-so every delivery attempt and retry of the same event shares it) in
-``a2aevents.traceId``, correlating the §32 tracing fields (event.id, topic,
-cursor, subscriptionId, deliveryAttemptId, ...).
+Each event also carries a deterministic trace id (derived from its event id,
+so every delivery attempt and retry of the same event shares it) in the
+``a2atraceid`` extension attribute, correlating the §32 tracing fields
+(event.id, topic, cursor, subscriptionId, deliveryAttemptId, ...).
 """
 
 from __future__ import annotations

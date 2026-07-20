@@ -115,11 +115,9 @@ def test_sample_instances_validate():
         type="org.example.a2a.agent_card.discovered.v1",
         time=datetime(2026, 6, 19, 20, 30, tzinfo=UTC),
         data={"cardUrl": "https://x"},
-        a2aevents={  # type: ignore[arg-type]
-            "publisherCardUrl": "https://agent-b.example.com/.well-known/agent-card.json",
-            "topic": "agent_card.discovered",
-            "cursor": "agent_card.discovered:0000000000000000",
-        },
+        a2apublisher="https://agent-b.example.com/.well-known/agent-card.json",
+        a2atopic="agent_card.discovered",
+        a2acursor="agent_card.discovered:0000000000000000",
     )
     Draft202012Validator(schemas["event.schema.json"]).validate(
         event.model_dump(by_alias=True, mode="json", exclude_none=True)
@@ -145,3 +143,22 @@ def test_subscription_schema_present():
     schemas = build_schemas()
     assert "subscription.schema.json" in schemas
     Draft202012Validator.check_schema(schemas["subscription.schema.json"])
+
+
+# --- release hygiene ---------------------------------------------------------
+
+
+def test_no_placeholder_extension_uri_in_shipped_artifacts():
+    """The pre-release placeholder URI must never reappear (item: extension
+    identity). Scans everything that ships or defines the contract."""
+    banned = "://example.com/a2a-events"
+    scan_roots = ["src", "schemas", "conformance", "examples", "e2e", "README.md"]
+    offenders: list[str] = []
+    for root in scan_roots:
+        path = REPO / root
+        files = [path] if path.is_file() else sorted(path.rglob("*"))
+        for f in files:
+            if f.is_file() and f.suffix in {".py", ".json", ".md", ".toml", ".sh"}:
+                if banned in f.read_text(errors="ignore"):
+                    offenders.append(str(f.relative_to(REPO)))
+    assert not offenders, f"placeholder URI found in: {offenders}"

@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 import grpc
 
+from . import methods as m
 from .auth import AuthIdentity, CallerAuthenticator
 from .errors import A2AEventsError, ErrorCode, http_status_for_error
 from .jsonrpc import handle
@@ -32,18 +33,8 @@ if TYPE_CHECKING:
 
 SERVICE = "a2a.events.v1.A2AEvents"
 
-# gRPC method name -> canonical JSON-RPC method.
-METHODS = {
-    "ListTopics": "a2a.events.ListTopics",
-    "Subscribe": "a2a.events.Subscribe",
-    "GetSubscription": "a2a.events.GetSubscription",
-    "ListSubscriptions": "a2a.events.ListSubscriptions",
-    "RenewSubscription": "a2a.events.RenewSubscription",
-    "DeleteSubscription": "a2a.events.DeleteSubscription",
-    "Replay": "a2a.events.Replay",
-    "Ack": "a2a.events.Ack",
-    "ListDeliveryAttempts": "a2a.events.ListDeliveryAttempts",
-}
+# gRPC method name -> canonical JSON-RPC method (derived, never hand-listed).
+METHODS = {m.grpc_rpc_name(method): method for method in m.CANONICAL_METHODS}
 
 # HTTP status (from the §30 error table) -> gRPC status code.
 _HTTP_TO_GRPC = {

@@ -58,7 +58,7 @@ uv run python examples/quickstart.py
   (`a2a.events.v1.A2AEvents`) with one unary RPC per `a2a.events.*` method, plus
   an `A2AEventsGrpcClient`. It runs through the same JSON-RPC handler, so
   semantics and error mapping are identical; install the `grpc` extra.
-- **Delivery** in both modes — canonical A2A-message (`a2a.SendMessage`) and
+- **Delivery** in both modes — canonical A2A-message (A2A `SendMessage`) and
   webhook — in-memory and over HTTP, with selectors, leases, opaque per-topic
   cursors, replay, and at-least-once semantics with explicit/implicit ack.
 - **Contract/implementation seam — bring your own backend.** The publisher
@@ -103,6 +103,11 @@ uv run python examples/quickstart.py
   a per-subscription bearer **delivery token** (`DeliveryTokenIssuer`), returns
   it under `delivery.auth` at creation, and presents it on every delivery; the
   receiver authenticates incoming events against it.
+- **Protocol guard rails** (§10.9, §20.2, §30) — malformed or cross-topic
+  cursors surface as `INVALID_CURSOR` (never a transport 500), topics declaring
+  `replay: false` reject `Replay` and backfilling `fromCursor` values with
+  `REPLAY_NOT_SUPPORTED`, and `Replay`/`Ack` against a lapsed lease fail with
+  `SUBSCRIPTION_EXPIRED` until renewed.
 - **Automatic lease renewal** — a transport-agnostic client-side
   `AutoLeaseRenewer` that renews at ~60% of the lease (§14.3).
 - **Retention compaction** (§31) — beyond filtering expired events on read, an
@@ -115,7 +120,19 @@ uv run python examples/quickstart.py
   match-rate, delivery-latency, and lease-renewal metrics;
   `observability_snapshot()` adds the §32 gauges (active/expired subscription and
   dead-letter counts). Every event carries a deterministic `traceId` in
-  `a2aevents.traceId` correlating the §32 tracing fields across attempts.
+  the `a2atraceid` extension attribute correlating the §32 tracing fields across attempts.
+- **Durable dispatch — no lost-event window** (§15, §19) — delivery is driven
+  entirely by durable per-(subscription, topic) high-water positions: once
+  `publish` persists an event, a crash at any point leaves recoverable work
+  that `dispatch_pending()` (or a background `DispatchWorker`) finishes after
+  restart. Backlog catch-up and live dispatch share one paged, per-subscription-
+  serialized code path, so subscription creation has a defined cutover (the
+  position captured at creation) with no `latest` boundary window and no
+  backlog skipping. Subscriptions dispatch concurrently — a slow or failing
+  subscriber never blocks another. With
+  `PublisherConfig(deferred_dispatch=True)`, `publish` only persists and
+  returns; inline dispatch (the default) is a development/reference
+  convenience, not a production worker architecture.
 - **Durable retry architecture** (§19.4) — opt into a `RetryQueue`
   (in-memory or Postgres) and a background `RetryWorker`: a failed delivery is
   persisted with a `next_retry_at` and re-attempted off the publish path, so a
@@ -151,8 +168,23 @@ this repo is self-contained — tests and CI need no second checkout.
   the committed copy drifts from the models.
 - Refresh both from the source of truth with
   `uv run python scripts/sync_spec.py` (copies from a sibling `../a2a-events`
-  checkout when present, otherwise fetches from GitHub). Add `--check` in CI to
-  fail when the vendored copy falls behind the spec repo.
+  checkout when present, otherwise fetches from GitHub).
+- **CI enforces cross-repo consistency**: the `contract-drift` job checks out
+  the spec repo at the ref pinned in [`SPEC_REF`](SPEC_REF) and fails if the
+  vendored copy differs (`sync_spec.py --check`). Pin `SPEC_REF` to a tag or
+  commit for reproducible verification; the verified commit is echoed in the
+  job log.
+
+The sync flow (the spec repo is always the source of truth — this repo must
+never become an implicit one):
+
+1. change the contract in the spec repo (schemas / fixtures / spec text);
+2. if the schemas are model-generated, regenerate here
+   (`scripts/export_schemas.py`) and propagate the files to the spec repo in
+   the same change;
+3. run `scripts/sync_spec.py` here to refresh the vendored copy, and bump
+   `SPEC_REF` to the new spec-repo ref;
+4. run the conformance tests (`uv run pytest tests/test_conformance.py`).
 
 ## License
 

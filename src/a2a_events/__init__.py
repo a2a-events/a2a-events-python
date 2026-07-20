@@ -39,6 +39,7 @@ from .observability import InMemoryMetrics, Metrics, NullMetrics, trace_id_for
 from .runtime import (
     A2AEventsPublisher,
     DeliveryResult,
+    DispatchWorker,
     InMemoryEventStore,
     InMemoryRetryQueue,
     InMemorySubscriptionStore,
@@ -70,6 +71,7 @@ __all__ = [
     "DeliveryMode",
     "DeliveryPreference",
     "DeliveryResult",
+    "DispatchWorker",
     "ErrorCode",
     "FieldFilterSelector",
     "InMemoryEventStore",

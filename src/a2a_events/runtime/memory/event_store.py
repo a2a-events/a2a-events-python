@@ -124,7 +124,11 @@ class InMemoryEventStore:
 
     def latest_cursor(self, topic: str) -> str:
         log = self._logs[topic]
-        return log.events[-1].cursor if log.events else cursor_mod.encode(topic, 0)
+        if log.events:
+            return log.events[-1].cursor
+        # Empty log: the cursor of the last event ever appended (compaction may
+        # have removed it), or offset 0 if nothing was ever appended.
+        return cursor_mod.encode(topic, max(log.next_offset - 1, 0))
 
     def read(
         self,
@@ -153,7 +157,7 @@ class InMemoryEventStore:
             return [], None
         else:
             assert from_cursor is not None
-            start_offset = cursor_mod.offset_of(from_cursor)
+            start_offset = cursor_mod.offset_for(topic, from_cursor)
             oldest = self.oldest_available_cursor(topic)
             if oldest is not None and start_offset < cursor_mod.offset_of(oldest):
                 raise A2AEventsError(
@@ -162,7 +166,7 @@ class InMemoryEventStore:
                     {"fromCursor": from_cursor, "oldestAvailableCursor": oldest},
                 )
 
-        to_offset = cursor_mod.offset_of(to_cursor) if to_cursor else None
+        to_offset = cursor_mod.offset_for(topic, to_cursor) if to_cursor else None
         out: list[EventRecord] = []
         for record in live:
             offset = cursor_mod.offset_of(record.cursor)

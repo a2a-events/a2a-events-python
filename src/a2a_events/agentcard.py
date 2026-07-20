@@ -109,6 +109,21 @@ def sign_card(
     }
 
 
+def _a2a_endpoint_of(card: dict[str, Any]) -> str | None:
+    """The subscriber's A2A JSON-RPC endpoint URL from its AgentCard.
+
+    A2A v1.0 declares endpoints via ``supportedInterfaces`` (AgentInterface
+    objects with ``url`` + ``protocolBinding``); A2A-message delivery uses
+    JSON-RPC, so only a ``JSONRPC`` interface qualifies. A top-level ``url``
+    is accepted as a fallback for older/abbreviated card shapes.
+    """
+    for iface in card.get("supportedInterfaces") or []:
+        if iface.get("url") and iface.get("protocolBinding", "JSONRPC") == "JSONRPC":
+            return str(iface["url"])
+    url = card.get("url")
+    return str(url) if url else None
+
+
 def _find_subscriber_extension(card: dict[str, Any]) -> dict[str, Any]:
     extensions = (card.get("capabilities") or {}).get("extensions") or []
     for ext in extensions:
@@ -154,7 +169,7 @@ def parse_subscriber_card(
 
     params = _find_subscriber_extension(card)
     receive_url = params.get("receiveUrl")
-    a2a_endpoint = card.get("url")
+    a2a_endpoint = _a2a_endpoint_of(card)
     modes = [DeliveryMode(m) for m in params.get("acceptedDeliveryModes", [])] or [
         DeliveryMode.A2A_MESSAGE,
         DeliveryMode.WEBHOOK,

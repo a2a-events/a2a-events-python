@@ -8,7 +8,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-EXTENSION_URI = "https://example.com/a2a-events/extensions/events/v1"
+EXTENSION_URI = "https://a2a-events.github.io/a2a-events/extensions/events/v1"
 
 
 class DeliveryMode(StrEnum):
@@ -94,20 +94,18 @@ class ResolvedDelivery(BaseModel):
 # --- CloudEvents envelope (spec §16) ------------------------------------
 
 
-class A2AEventsAttributes(BaseModel):
-    extension: str = EXTENSION_URI
-    publisher_card_url: str = Field(alias="publisherCardUrl")
-    topic: str
-    cursor: str
-    schema_url: str | None = Field(default=None, alias="schemaUrl")
-    subscription_id: str | None = Field(default=None, alias="subscriptionId")
-    delivery_attempt: int | None = Field(default=None, alias="deliveryAttempt")
-    trace_id: str | None = Field(default=None, alias="traceId")
-
-    model_config = ConfigDict(populate_by_name=True)
-
-
 class CloudEvent(BaseModel):
+    """A CloudEvents 1.0 event with the A2A Events extension attributes.
+
+    The A2A Events metadata travels as *flat scalar extension context
+    attributes* (``a2atopic``, ``a2acursor``, ...), because the CloudEvents
+    type system has no map/object type: extension attributes MUST use the
+    scalar type system and lowercase-alphanumeric names (CloudEvents 1.0
+    "Extension Context Attributes" + "Type System"; names SHOULD be at most
+    20 characters). A nested ``a2aevents`` object would not be a conformant
+    extension attribute.
+    """
+
     specversion: Literal["1.0"] = "1.0"
     id: str
     source: str
@@ -116,7 +114,15 @@ class CloudEvent(BaseModel):
     time: datetime
     datacontenttype: str = "application/json"
     data: dict[str, Any]
-    a2aevents: A2AEventsAttributes
+    # A2A Events extension context attributes (spec §16). Flat scalars only.
+    a2aextension: str = EXTENSION_URI
+    a2apublisher: str
+    a2atopic: str
+    a2acursor: str
+    a2aschemaurl: str | None = None
+    a2asubscription: str | None = None
+    a2adeliveryattempt: int | None = None
+    a2atraceid: str | None = None
 
     model_config = ConfigDict(populate_by_name=True)
 

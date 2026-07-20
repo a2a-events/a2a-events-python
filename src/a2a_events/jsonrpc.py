@@ -11,6 +11,7 @@ from typing import Any
 
 from pydantic import TypeAdapter, ValidationError
 
+from . import methods as m
 from .auth import AuthIdentity
 from .errors import A2AEventsError, ErrorCode
 from .models import DeliveryPreference, Selector, Subscription
@@ -24,17 +25,7 @@ INTERNAL_ERROR = -32603
 
 _selector_adapter: TypeAdapter[Selector] = TypeAdapter(Selector)
 
-METHODS = {
-    "a2a.events.ListTopics",
-    "a2a.events.Subscribe",
-    "a2a.events.GetSubscription",
-    "a2a.events.ListSubscriptions",
-    "a2a.events.RenewSubscription",
-    "a2a.events.DeleteSubscription",
-    "a2a.events.Replay",
-    "a2a.events.Ack",
-    "a2a.events.ListDeliveryAttempts",
-}
+METHODS = frozenset(m.CANONICAL_METHODS)
 
 
 def _result(req_id: Any, result: Any) -> dict[str, Any]:
@@ -75,7 +66,8 @@ async def handle(
         return _error(
             req_id, exc.jsonrpc_code, exc.message, exc.to_error_object()["data"]
         )
-    except (ValidationError, KeyError, TypeError) as exc:
+    except (KeyError, TypeError, ValueError) as exc:
+        # ValueError also covers pydantic's ValidationError (a subclass).
         return _error(req_id, INVALID_PARAMS, f"Invalid params: {exc}")
 
 
@@ -94,10 +86,10 @@ async def _dispatch(
     params: dict[str, Any],
     caller: AuthIdentity | None = None,
 ) -> Any:
-    if method == "a2a.events.ListTopics":
+    if method == m.LIST_TOPICS:
         return await publisher.list_topics()
 
-    if method == "a2a.events.Subscribe":
+    if method == m.SUBSCRIBE:
         selector = _parse_selector(params.get("selector"))
         delivery = DeliveryPreference.model_validate(params["delivery"])
         sub = await publisher.subscribe(
@@ -112,12 +104,12 @@ async def _dispatch(
         )
         return _dump_with_auth(publisher, sub)
 
-    if method == "a2a.events.GetSubscription":
+    if method == m.GET_SUBSCRIPTION:
         return _dump_with_auth(
             publisher, await publisher.get_subscription(params["subscriptionId"])
         )
 
-    if method == "a2a.events.ListSubscriptions":
+    if method == m.LIST_SUBSCRIPTIONS:
         subs, next_token = await publisher.paginate_subscriptions(
             params.get("pageToken"), params.get("pageSize")
         )
@@ -126,15 +118,15 @@ async def _dispatch(
             "nextPageToken": next_token,
         }
 
-    if method == "a2a.events.RenewSubscription":
+    if method == m.RENEW_SUBSCRIPTION:
         sub = await publisher.renew(params["subscriptionId"], params["leaseSeconds"])
         return _dump_with_auth(publisher, sub)
 
-    if method == "a2a.events.DeleteSubscription":
+    if method == m.DELETE_SUBSCRIPTION:
         await publisher.delete(params["subscriptionId"])
         return {"subscriptionId": params["subscriptionId"], "status": "deleted"}
 
-    if method == "a2a.events.Replay":
+    if method == m.REPLAY:
         return await publisher.replay(
             params["subscriptionId"],
             from_cursor=params.get("fromCursor"),
@@ -142,10 +134,10 @@ async def _dispatch(
             limit=params.get("limit", 100),
         )
 
-    if method == "a2a.events.Ack":
+    if method == m.ACK:
         return _dump(await publisher.ack(params["subscriptionId"], params["cursor"]))
 
-    if method == "a2a.events.ListDeliveryAttempts":
+    if method == m.LIST_DELIVERY_ATTEMPTS:
         return await publisher.list_delivery_attempts(
             params["subscriptionId"],
             params.get("pageToken"),

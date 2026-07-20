@@ -17,6 +17,7 @@ from typing import Any
 
 import httpx
 
+from ..methods import A2A_SEND_MESSAGE
 from .contracts import DeliveryResult
 
 
@@ -54,7 +55,8 @@ class HttpxTransport:
         envelope = {
             "jsonrpc": "2.0",
             "id": uuid.uuid4().hex,
-            "method": "a2a.SendMessage",
+            # A2A core's JSON-RPC methods are unprefixed PascalCase (A2A v1.0).
+            "method": A2A_SEND_MESSAGE,
             "params": message,
         }
         try:
@@ -68,7 +70,12 @@ class HttpxTransport:
 
         # A2A returns a JSON-RPC envelope. The subscriber conveys ack/nack in
         # the result (or a JSON-RPC error) per spec §18.1.
-        payload = resp.json()
+        try:
+            payload = resp.json()
+        except ValueError:
+            return DeliveryResult(
+                ack=False, retry=True, reason="non-JSON response from A2A endpoint"
+            )
         if "error" in payload:
             return DeliveryResult(
                 ack=False, retry=True, reason=payload["error"].get("message")

@@ -157,6 +157,43 @@ def test_latest_sentinel_returns_empty(backend: Backend):
     assert store.read(TOPIC, cursor.LATEST) == ([], None)
 
 
+def test_malformed_cursor_is_rejected(backend: Backend):
+    store = backend.store
+    _seed(store, 2)
+    for bad in ("garbage", ":123", "agent_card.discovered:", "agent_card.discovered:x"):
+        with pytest.raises(A2AEventsError) as exc:
+            store.read(TOPIC, bad)
+        assert exc.value.code == ErrorCode.INVALID_CURSOR, bad
+
+
+def test_cross_topic_cursor_is_rejected(backend: Backend):
+    store = backend.store
+    _seed(store, 2)
+    other = cursor.encode("other.topic", 0)
+    with pytest.raises(A2AEventsError) as exc:
+        store.read(TOPIC, other)
+    assert exc.value.code == ErrorCode.INVALID_CURSOR
+    with pytest.raises(A2AEventsError) as exc:
+        store.read(TOPIC, cursor.EARLIEST, to_cursor=other)
+    assert exc.value.code == ErrorCode.INVALID_CURSOR
+
+
+def test_latest_cursor_survives_full_compaction(backend: Backend):
+    store = backend.store
+    store.declare_topic(_topic(retention=3600))
+    cursors = [
+        store.append(TOPIC, "d", "a2a://pub", {"cardUrl": f"https://{i}"}).cursor
+        for i in range(3)
+    ]
+    for c in cursors:
+        backend.backdate(TOPIC, c, 7200)
+    store.compact(TOPIC)
+    # The log is empty but offsets were consumed: latest_cursor must reflect the
+    # last event ever appended, so a "latest" subscriber does not rewind to 0.
+    assert store.latest_cursor(TOPIC) == cursors[-1]
+    assert store.count(TOPIC) == 3
+
+
 def test_expired_cursor_is_rejected(backend: Backend):
     store = backend.store
     store.declare_topic(_topic(retention=3600))

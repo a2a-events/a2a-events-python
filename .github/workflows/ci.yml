@@ -28,6 +28,29 @@ jobs:
       - name: Test (pytest)
         run: uv run pytest -q
 
+  # The spec repo (a2a-events/a2a-events) is the source of truth for
+  # schemas/ and conformance/fixtures/; this repo vendors a copy. Fail when
+  # the vendored copy drifts from the spec repo at the ref pinned in
+  # SPEC_REF (pin a tag/commit there for reproducible verification; the
+  # verified ref is visible in the job log).
+  contract-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read pinned spec ref
+        id: specref
+        run: echo "ref=$(head -n1 SPEC_REF | tr -d ' ')" >> "$GITHUB_OUTPUT"
+      - name: Check out spec repo (source of truth) at pinned ref
+        uses: actions/checkout@v4
+        with:
+          repository: a2a-events/a2a-events
+          ref: ${{ steps.specref.outputs.ref }}
+          path: spec-src
+      - name: Record verified spec commit
+        run: git -C spec-src rev-parse HEAD
+      - name: Vendored contract must match the spec repo
+        run: python3 scripts/sync_spec.py --check --spec-dir spec-src
+
   postgres:
     runs-on: ubuntu-latest
     services:

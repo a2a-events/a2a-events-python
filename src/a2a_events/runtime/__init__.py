@@ -26,6 +26,7 @@ from .contracts import (
     SubscriptionStore,
     Transport,
 )
+from .dispatcher import DispatchWorker
 from .memory import (
     InMemoryEventStore,
     InMemoryRetryQueue,
@@ -42,6 +43,7 @@ __all__ = [
     "DeadLetter",
     "DeliveryAttempt",
     "DeliveryResult",
+    "DispatchWorker",
     "EventRecord",
     "EventStore",
     "InMemoryEventStore",

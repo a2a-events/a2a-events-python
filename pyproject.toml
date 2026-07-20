@@ -27,6 +27,9 @@ dev = [
     "grpcio>=1.60",
     "ruff>=0.4",
     "mypy>=1.10",
+    # Interop / conformance checks against independent implementations.
+    "a2a-sdk>=1.1",
+    "cloudevents>=1.11",
 ]
 
 [project.urls]

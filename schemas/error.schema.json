@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.com/a2a-events/schemas/error.schema.json",
+  "$id": "https://a2a-events.github.io/a2a-events/schemas/error.schema.json",
   "title": "A2AEventsError",
   "description": "JSON-RPC 2.0 error object with an A2A Events symbolic code.",
   "type": "object",

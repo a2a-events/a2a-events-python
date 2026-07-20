@@ -91,7 +91,7 @@ async def test_event_carries_trace_id() -> None:
 
     transport.send_a2a_message = capture  # type: ignore[method-assign]
     rec = await pub.publish(TOPIC, "v1", {"n": 1})
-    assert seen[0]["a2aevents"]["traceId"] == trace_id_for(rec.event_id)
+    assert seen[0]["a2atraceid"] == trace_id_for(rec.event_id)
     assert sub.subscription_id
 
 

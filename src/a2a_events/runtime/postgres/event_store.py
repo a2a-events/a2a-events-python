@@ -229,7 +229,9 @@ class PostgresEventStore:
             row = cur.fetchone()
         if row and row[0] is not None:
             return str(row[0])
-        return cursor_mod.encode(topic, 0)
+        # Empty log: the cursor of the last event ever appended (compaction may
+        # have removed it), or offset 0 if nothing was ever appended.
+        return cursor_mod.encode(topic, max(self.count(topic) - 1, 0))
 
     def read(
         self,
@@ -247,6 +249,10 @@ class PostgresEventStore:
 
         if from_cursor not in (None, cursor_mod.EARLIEST):
             assert from_cursor is not None
+            # Reject malformed or cross-topic cursors (INVALID_CURSOR) instead
+            # of silently mis-comparing them as strings — keeps this backend's
+            # behavior identical to the in-memory reference.
+            cursor_mod.offset_for(topic, from_cursor)
             oldest = self.oldest_available_cursor(topic)
             if oldest is not None and from_cursor < oldest:
                 raise A2AEventsError(
@@ -258,6 +264,7 @@ class PostgresEventStore:
             params.append(from_cursor)
 
         if to_cursor is not None:
+            cursor_mod.offset_for(topic, to_cursor)
             clauses.append("cursor <= %s")
             params.append(to_cursor)
 

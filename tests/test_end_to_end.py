@@ -60,8 +60,8 @@ async def test_subscribe_deliver_ack(harness: Harness):
 
     assert len(harness.subscriber.received) == 1
     delivered = harness.subscriber.received[0]
-    assert delivered["a2aevents"]["topic"] == TOPIC
-    assert delivered["a2aevents"]["cursor"] == rec.cursor
+    assert delivered["a2atopic"] == TOPIC
+    assert delivered["a2acursor"] == rec.cursor
 
     # Implicit ack advanced the per-topic cursor.
     got = await handle(

@@ -74,7 +74,7 @@ async def main() -> None:
 
     print(f"delivered {len(subscriber.received)} event(s):")
     for event in subscriber.received:
-        print(f"  - {event['data']['cardUrl']} @ cursor {event['a2aevents']['cursor']}")
+        print(f"  - {event['data']['cardUrl']} @ cursor {event['a2acursor']}")
 
     # Replay the topic from the start of retention.
     replay = await handle(

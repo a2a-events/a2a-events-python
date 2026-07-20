@@ -1,84 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.com/a2a-events/schemas/event.schema.json",
-  "$defs": {
-    "A2AEventsAttributes": {
-      "properties": {
-        "extension": {
-          "default": "https://example.com/a2a-events/extensions/events/v1",
-          "title": "Extension",
-          "type": "string"
-        },
-        "publisherCardUrl": {
-          "title": "Publishercardurl",
-          "type": "string"
-        },
-        "topic": {
-          "title": "Topic",
-          "type": "string"
-        },
-        "cursor": {
-          "title": "Cursor",
-          "type": "string"
-        },
-        "schemaUrl": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Schemaurl"
-        },
-        "subscriptionId": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Subscriptionid"
-        },
-        "deliveryAttempt": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Deliveryattempt"
-        },
-        "traceId": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Traceid"
-        }
-      },
-      "required": [
-        "publisherCardUrl",
-        "topic",
-        "cursor"
-      ],
-      "title": "A2AEventsAttributes",
-      "type": "object"
-    }
-  },
+  "$id": "https://a2a-events.github.io/a2a-events/schemas/event.schema.json",
+  "description": "A CloudEvents 1.0 event with the A2A Events extension attributes.\n\nThe A2A Events metadata travels as *flat scalar extension context\nattributes* (``a2atopic``, ``a2acursor``, ...), because the CloudEvents\ntype system has no map/object type: extension attributes MUST use the\nscalar type system and lowercase-alphanumeric names (CloudEvents 1.0\n\"Extension Context Attributes\" + \"Type System\"; names SHOULD be at most\n20 characters). A nested ``a2aevents`` object would not be a conformant\nextension attribute.",
   "properties": {
     "specversion": {
       "const": "1.0",
@@ -125,8 +48,70 @@
       "title": "Data",
       "type": "object"
     },
-    "a2aevents": {
-      "$ref": "#/$defs/A2AEventsAttributes"
+    "a2aextension": {
+      "default": "https://a2a-events.github.io/a2a-events/extensions/events/v1",
+      "title": "A2Aextension",
+      "type": "string"
+    },
+    "a2apublisher": {
+      "title": "A2Apublisher",
+      "type": "string"
+    },
+    "a2atopic": {
+      "title": "A2Atopic",
+      "type": "string"
+    },
+    "a2acursor": {
+      "title": "A2Acursor",
+      "type": "string"
+    },
+    "a2aschemaurl": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "A2Aschemaurl"
+    },
+    "a2asubscription": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "A2Asubscription"
+    },
+    "a2adeliveryattempt": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "A2Adeliveryattempt"
+    },
+    "a2atraceid": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "A2Atraceid"
     }
   },
   "required": [
@@ -135,7 +120,9 @@
     "type",
     "time",
     "data",
-    "a2aevents"
+    "a2apublisher",
+    "a2atopic",
+    "a2acursor"
   ],
   "title": "CloudEvent",
   "type": "object"

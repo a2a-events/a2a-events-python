@@ -83,7 +83,7 @@ class EventReceiver:
     ) -> DeliveryResult:
         # The per-subscription delivery credential authenticates the caller as
         # this subscription's publisher (§21.1). A mismatch is permanent.
-        subscription_id = (event.get("a2aevents") or {}).get("subscriptionId")
+        subscription_id = event.get("a2asubscription")
         if not self._delivery_token_ok(subscription_id, delivery_token):
             return DeliveryResult(
                 ack=False, retry=False, status_code=401, reason="bad delivery token"
@@ -113,7 +113,11 @@ class EventReceiver:
                 ack=False, retry=False, status_code=403, reason="timestamp out of skew"
             )
 
-        event_id = event["id"]
+        event_id = event.get("id")
+        if not event_id:
+            return DeliveryResult(
+                ack=False, retry=False, status_code=400, reason="event has no id"
+            )
         if event_id in self._seen:
             # Duplicate: idempotent ack, no reprocessing (§19.2).
             return DeliveryResult(ack=True, status_code=200)
@@ -147,9 +151,16 @@ class EventReceiver:
         )
 
     async def accept_a2a_message(self, message: dict[str, Any]) -> DeliveryResult:
-        msg = message["message"]
-        event = msg["parts"][0]["data"]
-        meta = msg["metadata"][EXTENSION_METADATA_KEY]
+        try:
+            msg = message["message"]
+            event = msg["parts"][0]["data"]
+            meta = msg["metadata"][EXTENSION_METADATA_KEY]
+        except (KeyError, IndexError, TypeError):
+            # Not an A2A Events delivery envelope (§18.1) — permanent, since a
+            # retry would resend the same malformed message.
+            return DeliveryResult(
+                ack=False, retry=False, status_code=400, reason="malformed envelope"
+            )
         return await self.accept(
             event=event,
             key_id=meta.get("keyId", ""),

@@ -38,6 +38,19 @@ def test_parse_minimal_subscriber_card() -> None:
     assert DeliveryMode.WEBHOOK in card.accepted_delivery_modes
 
 
+def test_supported_interfaces_endpoint_preferred() -> None:
+    # A2A v1.0 declares endpoints via supportedInterfaces; only a JSONRPC
+    # interface qualifies for A2A-message delivery, and it wins over a legacy
+    # top-level url.
+    card_dict = _card()
+    card_dict["supportedInterfaces"] = [
+        {"url": "https://agent-a.example.com/grpc", "protocolBinding": "GRPC"},
+        {"url": "https://agent-a.example.com/rpc/v1", "protocolBinding": "JSONRPC"},
+    ]
+    card = parse_subscriber_card(CARD_URL, card_dict)
+    assert card.a2a_endpoint == "https://agent-a.example.com/rpc/v1"
+
+
 def test_missing_extension_rejected() -> None:
     card = {"name": "x", "url": "https://x", "capabilities": {"extensions": []}}
     with pytest.raises(A2AEventsError) as exc:

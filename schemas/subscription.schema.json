@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.com/a2a-events/schemas/subscription.schema.json",
+  "$id": "https://a2a-events.github.io/a2a-events/schemas/subscription.schema.json",
   "$defs": {
     "DeliveryMode": {
       "enum": [

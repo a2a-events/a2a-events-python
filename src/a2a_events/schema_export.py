@@ -15,7 +15,7 @@ from .errors import ErrorCode
 from .models import CloudEvent, Selector, Subscription, Topic
 
 SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
-SCHEMA_BASE = "https://example.com/a2a-events/schemas"
+SCHEMA_BASE = "https://a2a-events.github.io/a2a-events/schemas"
 
 
 def _wrap(name: str, schema: dict[str, Any]) -> dict[str, Any]:

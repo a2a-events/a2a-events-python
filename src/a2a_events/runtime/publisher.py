@@ -100,6 +100,12 @@ class PublisherConfig:
     max_subscriptions_per_subscriber: int | None = None
     page_size: int = 100
     metrics: Metrics | None = None
+    # When True, ``publish`` only validates + persists the event and returns;
+    # network delivery is driven off the publish path by a DispatchWorker (or
+    # an explicit ``dispatch_pending()`` call) from the durable per-topic
+    # dispatch positions. When False (the default), dispatch runs inline —
+    # the development/reference mode, not a production worker architecture.
+    deferred_dispatch: bool = False
 
 
 class A2AEventsPublisher:
@@ -128,6 +134,16 @@ class A2AEventsPublisher:
         self._card_resolver = cfg.card_resolver or (
             lambda url: SubscriberCard(card_url=url)
         )
+        # Topic configs are immutable once declared (both reference backends are
+        # first-declaration-wins), so they are cached here to keep the dispatch
+        # hot path free of per-delivery store round-trips.
+        self._topics: dict[str, Topic] = {}
+        # One dispatch lock per subscription: catch-up (backlog), live publish
+        # dispatch, and the DispatchWorker all serialize per subscription, so
+        # events reach a subscription strictly in per-topic log order and the
+        # subscribe-time backlog can never be skipped by a racing publish.
+        self._sub_locks: dict[str, asyncio.Lock] = {}
+        self._deferred_dispatch = cfg.deferred_dispatch
         self.ssrf_policy = cfg.ssrf_policy or SSRFPolicy()
         self.min_lease_seconds = cfg.min_lease_seconds
         self.max_lease_seconds = cfg.max_lease_seconds
@@ -211,6 +227,14 @@ class A2AEventsPublisher:
     def declare_topic(self, topic: Topic) -> None:
         self.store.declare_topic(topic)
 
+    async def _get_topic(self, name: str) -> Topic:
+        """Fetch a topic config, memoizing it (topics are immutable, see §13)."""
+        topic = self._topics.get(name)
+        if topic is None:
+            topic = await self._run_store(self.store.get_topic, name)
+            self._topics[name] = topic
+        return topic
+
     async def compact(self, topic: str | None = None) -> int:
         """Physically delete events outside the retention window (§31)."""
         return await self._run_store(self.store.compact, topic)
@@ -238,6 +262,9 @@ class A2AEventsPublisher:
         caller: AuthIdentity | None = None,
     ) -> Subscription:
         self._check_lease(lease_seconds)
+        # Duplicate topic names would double-deliver during backfill; a
+        # subscription's topic set is a set (§14.1).
+        topics = list(dict.fromkeys(topics))
         if self.rate_limiter is not None:
             key = caller.subject if caller else subscriber_card_url
             self.rate_limiter.check(key, "subscribe")
@@ -250,9 +277,7 @@ class A2AEventsPublisher:
         self._check_delivery_mode(delivery.mode, card)
         resolved = self._resolve_delivery_target(delivery, card)
 
-        topic_models = [
-            await self._run_store(self.store.get_topic, name) for name in topics
-        ]
+        topic_models = [await self._get_topic(name) for name in topics]
         for topic in topic_models:
             validate_selector(selector, topic)
             if delivery.mode not in topic.delivery_modes:
@@ -260,6 +285,15 @@ class A2AEventsPublisher:
                     ErrorCode.DELIVERY_MODE_NOT_SUPPORTED,
                     f"Topic {topic.name} does not support delivery mode {delivery.mode.value}.",
                     {"topic": topic.name, "mode": delivery.mode.value},
+                )
+            # Starting anywhere but "latest" replays the backlog, which a
+            # replay-disabled topic must reject (§20.2, §31).
+            if from_cursor != cursor_mod.LATEST and not topic.replay:
+                raise A2AEventsError(
+                    ErrorCode.REPLAY_NOT_SUPPORTED,
+                    f"Topic {topic.name} does not support replay; "
+                    'subscribe with fromCursor "latest".',
+                    {"topic": topic.name},
                 )
 
         now = _now()
@@ -281,10 +315,14 @@ class A2AEventsPublisher:
         }
         await self._run_store(self.subs.add, sub, start_offsets)
 
-        # Backfill events already in the log at/after the start position.
-        if from_cursor != cursor_mod.LATEST:
-            for topic in topic_models:
-                await self._deliver_backlog(sub, topic)
+        # Cutover (§14.1): the start offsets captured above are the
+        # linearization point — the subscription owns every event after them.
+        # Catching up immediately (for *every* fromCursor, including "latest")
+        # both backfills the backlog and closes the creation race: an event
+        # appended between reading the topic head and persisting the
+        # subscription is delivered here rather than falling into a window.
+        if not self._deferred_dispatch:
+            await self._dispatch_subscription(sub)
         return sub
 
     def delivery_auth(self, sub: Subscription) -> dict[str, Any] | None:
@@ -312,6 +350,22 @@ class A2AEventsPublisher:
             )
         if self._expire_if_due(sub):
             await self._run_store(self.subs.update, sub)
+        return sub
+
+    async def _get_active_subscription(self, subscription_id: str) -> Subscription:
+        """Like :meth:`get_subscription`, but an expired lease is an error.
+
+        Used by the operations that act on live delivery state (replay, ack):
+        they fail with ``SUBSCRIPTION_EXPIRED`` (§30) until the subscriber
+        renews, instead of silently operating on a lapsed subscription.
+        """
+        sub = await self.get_subscription(subscription_id)
+        if sub.status != SubscriptionStatus.ACTIVE:
+            raise A2AEventsError(
+                ErrorCode.SUBSCRIPTION_EXPIRED,
+                f"Subscription {subscription_id} has expired; renew it first.",
+                {"subscriptionId": subscription_id},
+            )
         return sub
 
     async def list_subscriptions(self) -> list[Subscription]:
@@ -345,10 +399,11 @@ class A2AEventsPublisher:
             if s.status == SubscriptionStatus.EXPIRED
             or (s.status == SubscriptionStatus.ACTIVE and s.lease_until <= now)
         )
+        dead_letters = await self._run_store(self.subs.dead_letters)
         snapshot: dict[str, Any] = {
             "subscriptionCount": active,
             "expiredSubscriptionCount": expired,
-            "deadLetterCount": len(self.subs.dead_letters()),
+            "deadLetterCount": len(dead_letters),
         }
         collected = getattr(self.metrics, "snapshot", None)
         if callable(collected):
@@ -396,8 +451,14 @@ class A2AEventsPublisher:
 
     async def ack(self, subscription_id: str, cursor: str) -> Subscription:
         """Explicit ack (§10.10): advance the per-topic acked cursor."""
-        sub = await self.get_subscription(subscription_id)
+        sub = await self._get_active_subscription(subscription_id)
         topic = cursor_mod.topic_of(cursor)
+        if topic not in sub.topics:
+            raise A2AEventsError(
+                ErrorCode.TOPIC_NOT_AUTHORIZED,
+                f"Subscription is not authorized for topic {topic}.",
+                {"topic": topic},
+            )
         await self._advance(sub, topic, cursor)
         return sub
 
@@ -440,7 +501,7 @@ class A2AEventsPublisher:
         to_cursor: str | None = None,
         limit: int = 100,
     ) -> dict[str, Any]:
-        sub = await self.get_subscription(subscription_id)
+        sub = await self._get_active_subscription(subscription_id)
         if from_cursor and from_cursor not in (cursor_mod.EARLIEST, cursor_mod.LATEST):
             topic = cursor_mod.topic_of(from_cursor)
         else:
@@ -451,12 +512,18 @@ class A2AEventsPublisher:
                 f"Subscription is not authorized for topic {topic}.",
                 {"topic": topic},
             )
-        topic_model = await self._run_store(self.store.get_topic, topic)
+        topic_model = await self._get_topic(topic)
+        if not topic_model.replay:
+            raise A2AEventsError(
+                ErrorCode.REPLAY_NOT_SUPPORTED,
+                f"Topic {topic} does not support replay.",
+                {"topic": topic},
+            )
         records, next_cursor = await self._run_store(
             self.store.read, topic, from_cursor, to_cursor, limit
         )
         events = [
-            self._build_event(sub, r).model_dump(
+            self._build_event(sub, r, schema_url=topic_model.schema_url).model_dump(
                 by_alias=True, mode="json", exclude_none=True
             )
             for r in records
@@ -478,33 +545,123 @@ class A2AEventsPublisher:
         data: dict[str, Any],
         subject: str | None = None,
     ) -> EventRecord:
+        """Validate and persist one event, then dispatch it.
+
+        The event is durable once ``append`` returns: dispatch is driven
+        entirely by the per-(subscription, topic) high-water positions, so a
+        crash at any later point leaves recoverable work that a restarted
+        publisher (or a :class:`~a2a_events.runtime.dispatcher.DispatchWorker`)
+        finishes via :meth:`dispatch_pending`. With
+        ``PublisherConfig(deferred_dispatch=True)`` no delivery happens here at
+        all — publish returns as soon as the event is persisted.
+        """
         record = await self._run_store(
             self.store.append, topic, type, self.source, data, subject
         )
         self.metrics.incr("published_events", topic=topic)
-        topic_model = await self._run_store(self.store.get_topic, topic)
-        offset = cursor_mod.offset_of(record.cursor)
-        for sub in await self._run_store(self.subs.list_all):
-            if topic not in sub.topics or not await self._is_active(sub):
-                continue
-            # Re-check topic authorization at delivery time so a revoked grant
-            # stops future deliveries (§21.4).
-            if self.authorizer is not None and not self.authorizer.authorize_delivery(
-                sub
-            ):
-                continue
+        if not self._deferred_dispatch:
+            # Inline reference mode: catch every affected subscription up to
+            # the head. Subscriptions run concurrently (a slow subscriber does
+            # not delay a fast one); each subscription is serialized by its
+            # dispatch lock, so per-topic order is preserved.
+            await self._dispatch_topic(topic)
+        return record
+
+    async def dispatch_pending(self) -> int:
+        """Deliver every event still owed to any active subscription (§19).
+
+        The recovery/worker entry point: safe to call at any time, after a
+        crash, or periodically from a
+        :class:`~a2a_events.runtime.dispatcher.DispatchWorker`. Returns the
+        number of events processed (delivered, dead-lettered, handed to the
+        retry queue, or skipped by a selector).
+        """
+        subs = [s for s in await self._run_store(self.subs.list_all) if s.topics]
+        results = await asyncio.gather(
+            *(self._dispatch_subscription(sub) for sub in subs)
+        )
+        return sum(results)
+
+    async def _dispatch_topic(self, topic: str) -> None:
+        """Catch every subscription of ``topic`` up to the head, concurrently."""
+        subs = [
+            s for s in await self._run_store(self.subs.list_all) if topic in s.topics
+        ]
+        await asyncio.gather(*(self._dispatch_subscription(s, [topic]) for s in subs))
+
+    async def _dispatch_subscription(
+        self, sub: Subscription, topics: list[str] | None = None
+    ) -> int:
+        """Catch ``sub`` up to the head of ``topics`` (default: all its topics).
+
+        Serialized per subscription so backlog catch-up and live dispatch can
+        never interleave or skip events for the same subscription.
+        """
+        if not await self._is_active(sub):
+            return 0
+        # Re-check topic authorization at delivery time so a revoked grant
+        # stops future deliveries (§21.4).
+        if self.authorizer is not None and not self.authorizer.authorize_delivery(sub):
+            return 0
+        lock = self._sub_locks.setdefault(sub.subscription_id, asyncio.Lock())
+        processed = 0
+        async with lock:
+            for topic in topics if topics is not None else list(sub.topics):
+                processed += await self._catch_up(sub, topic)
+        return processed
+
+    async def _catch_up(self, sub: Subscription, topic: str) -> int:
+        """Deliver all events of ``topic`` past the subscription's position.
+
+        Pages through the event log from the durable high-water mark in
+        ``page_size`` chunks until it reaches the head, delivering matching
+        events in log order and advancing the scan position past
+        selector-filtered ones. Every step persists position first-class, so a
+        crash mid-catch-up resumes exactly where it left off (at-least-once).
+        """
+        topic_model = await self._get_topic(topic)
+        processed = 0
+        while True:
             high_water = await self._run_store(
                 self.subs.high_water, sub.subscription_id
             )
-            if offset <= high_water.get(topic, -1):
-                continue
-            raw = self._raw_event_dict(record)
-            if not matches(sub.selector, raw, topic_model.filterable_fields):
-                self.metrics.incr("selector_evaluations", result="miss")
-                continue
-            self.metrics.incr("selector_evaluations", result="match")
-            await self._deliver_one(sub, record)
-        return record
+            position = high_water.get(topic, -1)
+            from_cursor = cursor_mod.encode(topic, position) if position >= 0 else None
+            try:
+                records, _ = await self._run_store(
+                    self.store.read, topic, from_cursor, None, self.page_size
+                )
+            except A2AEventsError as exc:
+                if exc.code != ErrorCode.CURSOR_EXPIRED:
+                    raise
+                # The position aged out of retention: resume from the oldest
+                # live event and accept the gap (§31).
+                records, _ = await self._run_store(
+                    self.store.read, topic, None, None, self.page_size
+                )
+            if not records:
+                return processed
+            scan = position
+            for record in records:
+                offset = cursor_mod.offset_of(record.cursor)
+                if offset <= scan:
+                    continue
+                raw = self._raw_event_dict(record)
+                if matches(sub.selector, raw, topic_model.filterable_fields):
+                    self.metrics.incr("selector_evaluations", result="match")
+                    await self._deliver_one(sub, record)
+                else:
+                    self.metrics.incr("selector_evaluations", result="miss")
+                scan = offset
+                processed += 1
+            # Persist the scan position once per page so selector-filtered
+            # events are never rescanned on the next pass (delivered events
+            # already advanced it record-by-record).
+            current = await self._run_store(self.subs.high_water, sub.subscription_id)
+            if scan > current.get(topic, -1):
+                await self._run_store(
+                    self.subs.set_high_water, sub.subscription_id, topic, scan
+                )
 
     # --- internals ----------------------------------------------------------
     def _raw_event_dict(self, record: EventRecord) -> dict[str, Any]:
@@ -516,7 +673,11 @@ class A2AEventsPublisher:
         }
 
     def _build_event(
-        self, sub: Subscription, record: EventRecord, attempt: int = 1
+        self,
+        sub: Subscription,
+        record: EventRecord,
+        attempt: int = 1,
+        schema_url: str | None = None,
     ) -> CloudEvent:
         return CloudEvent(
             id=record.event_id,
@@ -525,21 +686,23 @@ class A2AEventsPublisher:
             subject=record.subject,
             time=record.created_at,
             data=record.data,
-            a2aevents={  # type: ignore[arg-type]
-                "publisherCardUrl": self.agent_card_url,
-                "topic": record.topic,
-                "cursor": record.cursor,
-                "subscriptionId": sub.subscription_id,
-                "deliveryAttempt": attempt,
-                "traceId": trace_id_for(record.event_id),
-            },
+            # Flat scalar extension context attributes (spec §16; CloudEvents
+            # 1.0 has no map-typed attributes).
+            a2apublisher=self.agent_card_url,
+            a2atopic=record.topic,
+            a2acursor=record.cursor,
+            a2aschemaurl=schema_url,
+            a2asubscription=sub.subscription_id,
+            a2adeliveryattempt=attempt,
+            a2atraceid=trace_id_for(record.event_id),
         )
 
     async def _attempt_send(
         self, sub: Subscription, record: EventRecord, attempt: int
     ) -> DeliveryResult:
         """Build, sign, and send one delivery attempt of ``record`` to ``sub``."""
-        event = self._build_event(sub, record, attempt)
+        topic_model = await self._get_topic(record.topic)
+        event = self._build_event(sub, record, attempt, topic_model.schema_url)
         event_dict = event.model_dump(by_alias=True, mode="json", exclude_none=True)
         timestamp = event_dict["time"]
         signature = self.signing_key.sign(timestamp, event_dict)
@@ -582,7 +745,6 @@ class A2AEventsPublisher:
     async def _deliver_one(self, sub: Subscription, record: EventRecord) -> bool:
         if self.retry_queue is not None:
             return await self._deliver_queued(sub, record)
-        result = DeliveryResult(ack=False)  # noqa: S1854
         for attempt in range(1, self.max_attempts + 1):
             result = await self._attempt_send(sub, record, attempt)
             if result.ack:
@@ -624,6 +786,15 @@ class A2AEventsPublisher:
                 next_retry_at=_now() + timedelta(seconds=self._backoff_delay(1)),
                 last_error=result.reason,
             ),
+        )
+        # The event is now the retry queue's responsibility: advance the
+        # dispatch position so catch-up moves on (high-water = "handed off",
+        # not "acked" — the acked cursor advances only on delivery).
+        await self._run_store(
+            self.subs.set_high_water,
+            sub.subscription_id,
+            record.topic,
+            cursor_mod.offset_of(record.cursor),
         )
         return False
 
@@ -744,8 +915,11 @@ class A2AEventsPublisher:
         }
         if token is not None:
             meta["deliveryToken"] = token
+        # A valid A2A v1.0 Message: messageId is required; role uses the A2A
+        # enum wire form; the CloudEvent rides in a DataPart.
         message = {
             "message": {
+                "messageId": "msg_" + uuid.uuid4().hex,
                 "role": "ROLE_AGENT",
                 "parts": [{"data": event_dict}],
                 "metadata": {EXTENSION_URI: meta},
@@ -754,21 +928,6 @@ class A2AEventsPublisher:
         return await self.transport.send_a2a_message(
             sub.delivery.resolved_endpoint or "", message
         )
-
-    async def _deliver_backlog(self, sub: Subscription, topic: Topic) -> None:
-        high_water = await self._run_store(self.subs.high_water, sub.subscription_id)
-        start_offset = high_water.get(topic.name, -1)
-        from_cursor = (
-            None if start_offset < 0 else cursor_mod.encode(topic.name, start_offset)
-        )
-        records, _ = await self._run_store(
-            self.store.read, topic.name, from_cursor, None, 10_000
-        )
-        for record in records:
-            if matches(
-                sub.selector, self._raw_event_dict(record), topic.filterable_fields
-            ):
-                await self._deliver_one(sub, record)
 
     async def _advance(
         self,
@@ -801,16 +960,22 @@ class A2AEventsPublisher:
 
     async def _start_offset(self, topic: str, from_cursor: str) -> int:
         """Initial high-water offset (-1 = before first event)."""
-        if from_cursor == cursor_mod.LATEST:
-            if not await self._run_store(self.store.count, topic):
-                return -1
-            latest = await self._run_store(self.store.latest_cursor, topic)
-            return cursor_mod.offset_of(latest)
         if from_cursor == cursor_mod.EARLIEST:
             return -1
-        # Specific cursor: validate retention, then resume after it.
-        await self._run_store(self.store.read, topic, from_cursor, from_cursor, 1)
-        return cursor_mod.offset_of(from_cursor)
+        if from_cursor != cursor_mod.LATEST:
+            # A specific cursor is scoped to a single topic (§10.9): it seeds
+            # that topic's position; any other subscribed topic starts at
+            # "latest". Malformed cursors raise INVALID_CURSOR here.
+            if cursor_mod.topic_of(from_cursor) == topic:
+                # Validate retention, then resume after the cursor.
+                await self._run_store(
+                    self.store.read, topic, from_cursor, from_cursor, 1
+                )
+                return cursor_mod.offset_of(from_cursor)
+        if not await self._run_store(self.store.count, topic):
+            return -1
+        latest = await self._run_store(self.store.latest_cursor, topic)
+        return cursor_mod.offset_of(latest)
 
     # --- guards -------------------------------------------------------------
     def _check_lease(self, lease_seconds: int) -> None:
